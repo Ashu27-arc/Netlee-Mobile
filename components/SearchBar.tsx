@@ -9,18 +9,28 @@ export default function SearchBar({ value, onChange }: any) {
                 style={styles.input}
                 value={value}
                 onChangeText={onChange}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
             />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { marginVertical: 10 },
+    container: { 
+        marginVertical: 10,
+        marginHorizontal: 0,
+        width: "100%",
+    },
     input: {
-        backgroundColor: "#111",
-        padding: 12,
-        borderRadius: 8,
+        backgroundColor: "#1a1a1a",
+        padding: 15,
+        borderRadius: 10,
         fontSize: 16,
         color: "#fff",
+        borderWidth: 1,
+        borderColor: "#333",
+        width: "100%",
     },
 });

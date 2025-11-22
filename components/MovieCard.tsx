@@ -4,10 +4,18 @@ import { useRouter } from "expo-router";
 export default function MovieCard({ movie, local }: any) {
     const router = useRouter();
 
+    const handlePress = () => {
+        if (local) {
+            // Local movie - use _id
+            router.push(`/player?id=${movie._id}&type=local`);
+        } else {
+            // TMDB movie - use id
+            router.push(`/player?id=${movie.id}&type=tmdb`);
+        }
+    };
+
     return (
-        <TouchableOpacity
-            onPress={() => local && router.push(`/player?id=${movie._id}`)}
-        >
+        <TouchableOpacity onPress={handlePress}>
             <Image
                 style={styles.img}
                 source={{

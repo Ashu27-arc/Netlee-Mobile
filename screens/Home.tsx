@@ -1,10 +1,12 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useCallback } from "react";
 import {
   ScrollView,
   StyleSheet,
   Text,
   View,
   ImageBackground,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { AuthContext } from "../context/AuthContext";
 import { API } from "../api/api";
@@ -27,35 +29,61 @@ export default function Home() {
     upcoming: []
   });
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchMovies = useCallback(async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
+
+      const res = await API.get("/movies/home");
+      const moviesData = res.data || {
+        local: [],
+        trending: [],
+        popular: [],
+        topRated: [],
+        upcoming: []
+      };
+      
+      setData(moviesData);
+      
+      // Log success
+      console.log("✅ Movies fetched successfully:", {
+        local: moviesData.local?.length || 0,
+        trending: moviesData.trending?.length || 0,
+        popular: moviesData.popular?.length || 0,
+        topRated: moviesData.topRated?.length || 0,
+        upcoming: moviesData.upcoming?.length || 0,
+      });
+    } catch (err: any) {
+      console.error("❌ Error loading movies:", err);
+      setError("Failed to load movies. Pull down to refresh.");
+      // Set empty data on error to prevent crashes
+      setData({
+        local: [],
+        trending: [],
+        popular: [],
+        topRated: [],
+        upcoming: []
+      });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchMovies = async () => {
-      try {
-        const res = await API.get("/movies/home");
-        setData(res.data || {
-          local: [],
-          trending: [],
-          popular: [],
-          topRated: [],
-          upcoming: []
-        });
-      } catch (err) {
-        console.error("Error loading movies:", err);
-        // Set empty data on error to prevent crashes
-        setData({
-          local: [],
-          trending: [],
-          popular: [],
-          topRated: [],
-          upcoming: []
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchMovies();
-  }, []);
+  }, [fetchMovies]);
+
+  const onRefresh = useCallback(() => {
+    fetchMovies(true);
+  }, [fetchMovies]);
 
   const hero = data.trending && data.trending.length > 0 
     ? data.trending[0] 
@@ -65,11 +93,12 @@ export default function Home() {
     ? data.local[0] 
     : null;
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.container}>
         <Navbar />
         <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#e50914" />
           <Text style={styles.loadingText}>Loading movies...</Text>
         </View>
       </View>
@@ -80,7 +109,16 @@ export default function Home() {
     <View style={styles.container}>
       <Navbar />
 
-      <ScrollView>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#e50914"
+            colors={["#e50914"]}
+          />
+        }
+      >
         {hero && (
           <ImageBackground
             source={{
@@ -99,6 +137,12 @@ export default function Home() {
             Hello, {user?.name || "Guest"} 👋
           </Text>
 
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+
           {data.local && data.local.length > 0 && (
             <MovieRow title="Your Uploaded Movies" movies={data.local} local />
           )}
@@ -113,6 +157,18 @@ export default function Home() {
           )}
           {data.upcoming && data.upcoming.length > 0 && (
             <MovieRow title="Upcoming" movies={data.upcoming} />
+          )}
+
+          {!loading && !error && 
+           (!data.local || data.local.length === 0) &&
+           (!data.trending || data.trending.length === 0) &&
+           (!data.popular || data.popular.length === 0) &&
+           (!data.topRated || data.topRated.length === 0) &&
+           (!data.upcoming || data.upcoming.length === 0) && (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No movies available</Text>
+              <Text style={styles.emptySubtext}>Pull down to refresh</Text>
+            </View>
           )}
         </View>
       </ScrollView>
@@ -158,5 +214,32 @@ const styles = StyleSheet.create({
   loadingText: {
     color: "#fff",
     fontSize: 18,
+    marginTop: 10,
+  },
+  // ERROR
+  errorContainer: {
+    backgroundColor: "rgba(229, 9, 20, 0.2)",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  errorText: {
+    color: "#ff6b6b",
+    fontSize: 14,
+    textAlign: "center",
+  },
+  // EMPTY
+  emptyContainer: {
+    padding: 40,
+    alignItems: "center",
+  },
+  emptyText: {
+    color: "#aaa",
+    fontSize: 18,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    color: "#666",
+    fontSize: 14,
   },
 });
