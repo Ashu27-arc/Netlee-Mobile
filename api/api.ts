@@ -1,11 +1,9 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// IMPORTANT: Replace with your computer's local IP address
-// To find your IP: Run 'ipconfig' (Windows) or 'ifconfig' (Mac/Linux)
-// Example: "http://192.168.1.100:5000/api"
+// Live Backend URL (Deployed on Render)
 const API = axios.create({
-    baseURL: "http://192.168.1.12:5000/api", // ⚠️ Change this to your computer's IP
+    baseURL: "https://netlee-backend.onrender.com/api",
     timeout: 10000,
 });
 
